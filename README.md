@@ -16,6 +16,10 @@ namespaces, create the secrets and deploy the microservices in the right order.
 ![SQuaSH db microservice](figs/squash-db.png)
 
 
+NOTE: if using minikube make the deployment using:
+```
+  MINIKUBE=true make squash-db
+```
 
 ## Create the `tls-certs` secret
 
