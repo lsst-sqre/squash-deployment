@@ -17,15 +17,15 @@ namespaces, create the secrets and deploy the microservices in the right order.
 
 
 
-## Create the TLS secrets
+## Create the `tls-certs` secret
 
-TLS secrets are used by the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices which use `nginx` as reverse proxy. 
+`tls-certs` are used by the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices which use `nginx` as reverse proxy. 
 
 Download the `lsst-certs.git` repo from the [lsst-square](https://www.dropbox.com/home/lsst-sqre) Dropbox folder, it has the SSL key and certificates to secure
  traffic on `*.lsst.codes` services. 
 
 ```
-  make tls-secrets
+  make tls-certs
 ```
 
 ## Deploy the SQuaSH API
