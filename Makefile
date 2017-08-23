@@ -8,8 +8,8 @@ SSL_KEY = lsst.codes.key
 SSL_CERT = lsst.codes_chain.pem
 SSL_DH = dhparam.pem
 
-secrets: $(LSST_CERTS)
-	@echo "Creating secrets..."
+tls-certs: $(LSST_CERTS)
+	@echo "Creating tls-certs secret..."
 
 	mkdir -p lsst-certs
 	cd lsst-certs; git init; git remote add origin ../$(LSST_CERTS); git pull origin master
