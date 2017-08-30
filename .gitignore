@@ -2,6 +2,10 @@
 lsst-certs.git
 lsst-certs
 tls
+squash-db
+squash-api
+squash-bokeh
+squash-dash
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
