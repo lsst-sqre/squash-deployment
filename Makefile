@@ -1,3 +1,5 @@
+NAMESPACE_CONFIG = kubernetes/namespace-${NAMESPACE}.yaml
+
 # Downloaded from the `lsst-square` Dropbox folder
 LSST_CERTS_REPO = lsst-certs.git
 LSST_CERTS_YEAR = 2017
@@ -18,6 +20,24 @@ SQUASH_DB_REPO = https://github.com/lsst-sqre/squash-db.git
 SQUASH_API_REPO = https://github.com/lsst-sqre/squash-api.git
 SQUASH_BOKEH_REPO = https://github.com/lsst-sqre/squash-bokeh.git
 SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
+
+DELETE_CONTEXT = $(shell bash -c 'read -p "All previous pods in the \"${NAMESPACE}\" \
+context will be destroyed. Are you sure? [y/n]:" answer; echo $$answer')
+
+CONTEXT_USER = $(shell bash -c 'kubectl config view -o jsonpath --template="{.contexts[0].context.user}"')
+
+CONTEXT_CLUSTER = $(shell bash -c 'kubectl config view -o jsonpath --template="{.contexts[0].context.cluster}"')
+
+context: check-namespace
+	@if [ "$(DELETE_CONTEXT)" == "y" ]; \
+	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
+	else echo "Exiting..."; \
+	     exit 1; \
+	fi
+	@sleep 10
+	kubectl create -f $(NAMESPACE_CONFIG)
+	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
+	kubectl config use-context ${NAMESPACE}
 
 
 $(TLS_DIR)/$(SSL_DH):
@@ -65,3 +85,8 @@ clean:
 	rm -rf squash-db
 	rm -rf suqash-api
 
+check-namespace:
+	@if [ -z ${NAMESPACE} ]; \
+	then echo "Error: NAMESPACE is undefined."; \
+	     exit 1; \
+	fi
