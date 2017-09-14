@@ -21,15 +21,15 @@ SQUASH_API_REPO = https://github.com/lsst-sqre/squash-api.git
 SQUASH_BOKEH_REPO = https://github.com/lsst-sqre/squash-bokeh.git
 SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
 
-DELETE_CONTEXT = $(shell bash -c 'read -p "All previous Pods, Services, and Deployments \
-in the \"${NAMESPACE}\" namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer')
+DELETE_CONTEXT = $(shell read -p "All previous Pods, Services, and Deployments \
+in the \"${NAMESPACE}\" namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer)
 
-CONTEXT_USER = $(shell bash -c 'kubectl config view -o jsonpath --template="{.contexts[0].context.user}"')
+CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[0].context.user}")
 
-CONTEXT_CLUSTER = $(shell bash -c 'kubectl config view -o jsonpath --template="{.contexts[0].context.cluster}"')
+CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[0].context.cluster}")
 
 context: check-namespace
-	@if [ "$(DELETE_CONTEXT)" == "y" ]; \
+	@if [ "$(DELETE_CONTEXT)" = "y" ]; \
 	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
 	else echo "Exiting..."; \
 	     exit 1; \
