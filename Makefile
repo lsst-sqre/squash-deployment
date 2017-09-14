@@ -22,7 +22,7 @@ SQUASH_BOKEH_REPO = https://github.com/lsst-sqre/squash-bokeh.git
 SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
 
 DELETE_CONTEXT = $(shell bash -c 'read -p "All previous pods in the \"${NAMESPACE}\" \
-context will be destroyed. Are you sure? [y/n]:" answer; echo $$answer')
+namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer')
 
 CONTEXT_USER = $(shell bash -c 'kubectl config view -o jsonpath --template="{.contexts[0].context.user}"')
 
