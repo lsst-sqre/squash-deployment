@@ -19,8 +19,6 @@ Use the following to create a `squash-dev` namespace and switch to the right con
 NAMESPACE=squash-dev make context
 ```
 
-NOTE: the script assumes the current contex the first cluster by default.
-
 Output example: 
 
 ```
