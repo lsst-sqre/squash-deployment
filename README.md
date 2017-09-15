@@ -10,24 +10,63 @@ namespace and context, create the secrets and deploy the microservices in the ri
 ### Deployment namespace
 
 A Kubernetes _namespace_ provide a scope for Pods, Services, and Deployments in the cluster.
-In the current implementation we have two namespaces `development` or `production`.
+You can use any available namespace.
 
 Namespaces are also used to define a context in which the `kubectl` client works.
 
-Use the following to create a `development` namespace and switch to the right context:
+Use the following to create a `squash-dev` namespace and switch to the right context:
 ```
-NAMESPACE=development make context
+NAMESPACE=squash-dev make context
+```
+
+NOTE: the script assumes the current contex the first cluster by default.
+
+Output example: 
+
+```
+$ NAMESPACE=squash-dev make context
+All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
+kubectl create -f kubernetes/namespace.yaml
+namespace "squash-dev" created
+kubectl config set-context squash-dev --namespace=squash-dev --cluster=gke_radiant-moon-173517_us-west1-a_k0 --user=gke_radiant-moon-173517_us-west1-a_k0
+Context "squash-dev" created.
+kubectl config use-context squash-dev
+Switched to context "squash-dev".
 ```
 
 ### Create the `tls-certs` secret
 
 TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on `*.lsst.codes` domain. 
 
-Download the `lsst-certs.git` repo from the [lsst-square](https://www.dropbox.com/home/lsst-sqre) Dropbox folder, it has the SSL key and certificates. Use the following to create the `tls-certs` secret.
+Download the `lsst-certs.git` repo from the [lsst-square Dropbox folder](https://www.dropbox.com/home/lsst-sqre), it has the SSL key and certificates. Use the following to create the `tls-certs` secret.
  
 ```
-  make tls-certs
+make tls-certs
 ```
+
+Output example:
+
+```
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+.......+................................................................+...................+.........................................+...............................................................................................................................................................................................................................................
+Creating tls-certs secret...
+Initialized empty Git repository in /Users/afausti/Projects/squash-deployment/lsst-certs/.git/
+remote: Counting objects: 72, done.
+remote: Compressing objects: 100% (61/61), done.
+remote: Total 72 (delta 19), reused 27 (delta 7)
+Unpacking objects: 100% (72/72), done.
+From ../lsst-certs
+ * branch            master     -> FETCH_HEAD
+ * [new branch]      master     -> origin/master
+cp lsst-certs/lsst.codes/2017/lsst.codes.key tls
+cp lsst-certs/lsst.codes/2017/lsst.codes_chain.pem tls
+kubectl delete --ignore-not-found=true secrets tls-certs
+kubectl create secret generic tls-certs --from-file=tls
+secret "tls-certs" created
+```
+
+
 
 ### SQuaSH DB
 

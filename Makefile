@@ -1,4 +1,6 @@
-NAMESPACE_CONFIG = kubernetes/namespace-${NAMESPACE}.yaml
+NAMESPACE_TEMPLATE = kubernetes/namespace-template.yaml
+NAMESPACE_CONFIG = kubernetes/namespace.yaml
+REPLACE = ./kubernetes/replace.sh
 
 # Downloaded from the `lsst-square` Dropbox folder
 LSST_CERTS_REPO = lsst-certs.git
@@ -24,11 +26,15 @@ SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
 DELETE_CONTEXT = $(shell read -p "All previous Pods, Services, and Deployments \
 in the \"${NAMESPACE}\" namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer)
 
-CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[0].context.user}")
+# Find cluster and user from the current context to set the new context
 
-CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[0].context.cluster}")
+CURRENT_CONTEXT = $(shell kubectl config current-context)
+
+CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.user}")
+CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.cluster}")
 
 context: check-namespace
+	@$(REPLACE) $(NAMESPACE_TEMPLATE) $(NAMESPACE_CONFIG)
 	@if [ "$(DELETE_CONTEXT)" = "y" ]; \
 	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
 	else echo "Exiting..."; \
@@ -41,7 +47,7 @@ context: check-namespace
 
 
 $(TLS_DIR)/$(SSL_DH):
-	mkdir -p $(TLS_DIR)
+	@mkdir -p $(TLS_DIR)
 	openssl dhparam -out $(TLS_DIR)/$(SSL_DH) 2048
 
 .PHONY: tls-certs
@@ -49,8 +55,8 @@ $(TLS_DIR)/$(SSL_DH):
 tls-certs: $(TLS_DIR)/$(SSL_DH)
 	@echo "Creating tls-certs secret..."
 
-	mkdir -p $(LSST_CERTS_DIR)
-	cd $(LSST_CERTS_DIR); git init; git remote add origin ../$(LSST_CERTS_REPO); git pull origin master
+	@mkdir -p $(LSST_CERTS_DIR)
+	@cd $(LSST_CERTS_DIR); git init; git remote add origin ../$(LSST_CERTS_REPO); git pull origin master
 
 	cp lsst-certs/lsst.codes/$(LSST_CERTS_YEAR)/$(SSL_KEY) $(TLS_DIR)
 	cp lsst-certs/lsst.codes/$(LSST_CERTS_YEAR)/$(SSL_CERT) $(TLS_DIR)
