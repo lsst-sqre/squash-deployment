@@ -67,6 +67,51 @@ The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interf
 ![SQuaSH DB, API, Bokeh and the Dashboard microservices](figs/squash-deployment.png)
 
 
+## Configure DNS for the services
+
+We use AWS route53 to create DNS records for SQuaSH services. You have to set your 
+AWS credentials and execute the command below for each service:
+
+```
+export AWS_ACCESS_KEY_ID=<your AWS credentials>
+export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
+```
+
+```
+SQUASH_SERVICE=<name of the squash service> make dns
+```
+
+Output example:
+
+```
+$ SQUASH_SERVICE=squash-bokeh make dns
+source terraform/tf_env.sh squash-bokeh squash-dev 35.203.172.87; 
+	./terraform/bin/terraform apply -state=terraform/squash-bokeh.tfstate terraform/dns
+aws_route53_record.squash-www: Creating...
+  fqdn:              "" => "<computed>"
+  name:              "" => "squash-bokeh.squash-dev.lsst.codes"
+  records.#:         "" => "1"
+  records.547640452: "" => "35.203.172.87"
+  ttl:               "" => "300"
+  type:              "" => "A"
+  zone_id:           "" => "Z3TH0HRSNU67AM"
+aws_route53_record.squash-www: Still creating... (10s elapsed)
+aws_route53_record.squash-www: Still creating... (20s elapsed)
+aws_route53_record.squash-www: Still creating... (30s elapsed)
+aws_route53_record.squash-www: Still creating... (40s elapsed)
+aws_route53_record.squash-www: Creation complete (ID: Z3TH0HRSNU67AM_squash-bokeh.squash-dev.lsst.codes_A)
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+```
+
+The DNS record can be removed with:
+
+```
+SQUASH_SERVICE=<name of the squash service> make remove-dns
+```
+
+
 ## Environment variables
 The following environment variables are used to exchange information among the pods:
 
