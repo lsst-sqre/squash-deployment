@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # Downloaded from the `lsst-square` Dropbox folder
 LSST_CERTS_REPO = lsst-certs.git
 LSST_CERTS_YEAR = 2017
@@ -13,19 +15,11 @@ SSL_DH = dhparam.pem
 LSST_CERTS_DIR = lsst-certs
 TLS_DIR = tls
 
-# SQuaSH repos
-SQUASH_DB_REPO = https://github.com/lsst-sqre/squash-db.git
-SQUASH_API_REPO = https://github.com/lsst-sqre/squash-api.git
-SQUASH_BOKEH_REPO = https://github.com/lsst-sqre/squash-bokeh.git
-SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
-
-
 $(TLS_DIR)/$(SSL_DH):
 	mkdir -p $(TLS_DIR)
 	openssl dhparam -out $(TLS_DIR)/$(SSL_DH) 2048
 
 .PHONY: tls-certs
-
 tls-certs: $(TLS_DIR)/$(SSL_DH)
 	@echo "Creating tls-certs secret..."
 
@@ -38,30 +32,53 @@ tls-certs: $(TLS_DIR)/$(SSL_DH)
 	kubectl delete --ignore-not-found=true secrets tls-certs
 	kubectl create secret generic tls-certs --from-file=$(TLS_DIR)
 
-squash-db:
-	git clone $(SQUASH_DB_REPO)
+# Create Kubernetes deloyment
+
+SQUASH_DB_PASSWD = squash-db/passwd.txt
+
+$(SQUASH_DB_PASSWD):
 	@echo "Enter a password for the SQuaSH DB:"
 	@read MYSQL_PASSWD
-	@echo $MYSQL_PASSWD > squash-db/passwd.txt
-	$(MAKE) deployment -C squash-db
+	@echo $MYSQL_PASSWD > $(SQUASH_DB_PASSWD)
 
-squash-api:
-	git clone $(SQUASH_API_REPO)
-	TAG=latest $(MAKE) deployment -C squash-api
+REPO_URL = https://github.com/lsst-sqre/${SQUASH_SERVICE}.git
 
-squash-bokeh:
-	git clone $(SQUASH_BOKEH_REPO)
-	TAG=latest $(MAKE) deployment -C squash-bokeh
+clone: check_service
+	git clone $(REPO_URL)
 
-squash-dash:
-	git clone $(SQUASH_DASH_REPO)
-	TAG=latest $(MAKE) deployment -C squash-dash
+deployment:
+	TAG=latest $(MAKE) deployment -C ${SQUASH_SERVICE}
+
+# Create AWS route53 resources
+
+TERRAFORM = ./terraform/bin/terraform
+
+$(TERRAFORM):
+	$(MAKE) -C terraform
+
+EXTERNAL_IP = $(shell kubectl get service ${SQUASH_SERVICE} -o jsonpath --template='{.status.loadBalancer.ingress[0].ip}')
+
+# By construction the context name is the same as the namespace name
+NAMESPACE = $(shell kubectl config current-context)
+
+.PHONY: dns
+dns: $(TERRAFORM) check-service check-aws-creds
+	source terraform/tf_env.sh ${SQUASH_SERVICE} $(NAMESPACE) $(EXTERNAL_IP); \
+	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}.tfstate terraform/dns
+
+remove-dns: $(TERRAFORM) check-service check-aws-creds
+	source terraform/tf_env.sh; \
+	$(TERRAFORM) destroy -state=terraform/${SQUASH_SERVICE}.tfstate
+
+check-service:
+	@if test -z ${SQUASH_SERVICE}; then echo "Error: SQUASH_SERVICE is undefined."; exit 1; fi
+
+check-aws-creds:
+	@if test -z ${AWS_ACCESS_KEY_ID}; then echo "Error: AWS_ACCESS_KEY_ID is undefined."; exit 1; fi
+	@if test -z ${AWS_SECRET_ACCESS_KEY}; then echo "Error: AWS_SECRET_ACCESS_KEY is undefined."; exit 1; fi
 
 .PHONY: clean
-
 clean:
 	rm -rf $(LSST_CERTS_DIR)
 	rm -rf $(TLS_DIR)
-	rm -rf squash-db
-	rm -rf suqash-api
 
