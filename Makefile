@@ -1,35 +1,15 @@
+SHELL := /bin/bash
+
+# Create namespace for deployment
 NAMESPACE_TEMPLATE = kubernetes/namespace-template.yaml
 NAMESPACE_CONFIG = kubernetes/namespace.yaml
 REPLACE = ./kubernetes/replace.sh
-
-# Downloaded from the `lsst-square` Dropbox folder
-LSST_CERTS_REPO = lsst-certs.git
-LSST_CERTS_YEAR = 2017
-
-# Keys and certificates used in nginx config
-SSL_KEY = lsst.codes.key
-SSL_CERT = lsst.codes_chain.pem
-
-# SSL config also requires a dhparam file
-SSL_DH = dhparam.pem
-
-# Output dirs
-LSST_CERTS_DIR = lsst-certs
-TLS_DIR = tls
-
-# SQuaSH repos
-SQUASH_DB_REPO = https://github.com/lsst-sqre/squash-db.git
-SQUASH_API_REPO = https://github.com/lsst-sqre/squash-api.git
-SQUASH_BOKEH_REPO = https://github.com/lsst-sqre/squash-bokeh.git
-SQUASH_DASH_REPO = https://github.com/lsst-sqre/squash-dash.git
 
 DELETE_CONTEXT = $(shell read -p "All previous Pods, Services, and Deployments \
 in the \"${NAMESPACE}\" namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer)
 
 # Find cluster and user from the current context to set the new context
-
 CURRENT_CONTEXT = $(shell kubectl config current-context)
-
 CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.user}")
 CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.cluster}")
 
@@ -45,13 +25,28 @@ context: check-namespace
 	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
 	kubectl config use-context ${NAMESPACE}
 
+# Create Kubernetes tls-certs secret
+
+# LSST_CERTS_REPO is downloaded from the `lsst-square` Dropbox folder
+LSST_CERTS_REPO = lsst-certs.git
+LSST_CERTS_YEAR = 2017
+
+# Keys and certificates used in nginx config
+SSL_KEY = lsst.codes.key
+SSL_CERT = lsst.codes_chain.pem
+
+# SSL config also requires a dhparam file
+SSL_DH = dhparam.pem
+
+# Output dirs
+LSST_CERTS_DIR = lsst-certs
+TLS_DIR = tls
 
 $(TLS_DIR)/$(SSL_DH):
 	@mkdir -p $(TLS_DIR)
 	openssl dhparam -out $(TLS_DIR)/$(SSL_DH) 2048
 
 .PHONY: tls-certs
-
 tls-certs: $(TLS_DIR)/$(SSL_DH)
 	@echo "Creating tls-certs secret..."
 
@@ -64,35 +59,65 @@ tls-certs: $(TLS_DIR)/$(SSL_DH)
 	kubectl delete --ignore-not-found=true secrets tls-certs
 	kubectl create secret generic tls-certs --from-file=$(TLS_DIR)
 
-squash-db:
-	git clone $(SQUASH_DB_REPO)
+# Create Kubernetes deloyment
+SQUASH_DB_PASSWD = squash-db/passwd.txt
+
+$(SQUASH_DB_PASSWD):
 	@echo "Enter a password for the SQuaSH DB:"
 	@read MYSQL_PASSWD
-	@echo $MYSQL_PASSWD > squash-db/passwd.txt
-	$(MAKE) deployment -C squash-db
+	@echo $MYSQL_PASSWD > $(SQUASH_DB_PASSWD)
 
-squash-api:
-	git clone $(SQUASH_API_REPO)
-	TAG=latest $(MAKE) deployment -C squash-api
+REPO_URL = https://github.com/lsst-sqre/${SQUASH_SERVICE}.git
 
-squash-bokeh:
-	git clone $(SQUASH_BOKEH_REPO)
-	TAG=latest $(MAKE) deployment -C squash-bokeh
+clone: check_service
+	git clone $(REPO_URL)
 
-squash-dash:
-	git clone $(SQUASH_DASH_REPO)
-	TAG=latest $(MAKE) deployment -C squash-dash
+deployment:
+	TAG=latest $(MAKE) deployment -C ${SQUASH_SERVICE}
 
-.PHONY: clean
+# Create AWS route53 resources
+TERRAFORM = ./terraform/bin/terraform
 
-clean:
-	rm -rf $(LSST_CERTS_DIR)
-	rm -rf $(TLS_DIR)
-	rm -rf squash-db
-	rm -rf squash-api
+$(TERRAFORM):
+	$(MAKE) -C terraform
 
+EXTERNAL_IP = $(shell kubectl get service ${SQUASH_SERVICE} -o jsonpath --template='{.status.loadBalancer.ingress[0].ip}')
+
+# By construction the context name is the same as the namespace name, see above.
+NAMESPACE = $(CURRENT_CONTEXT)
+
+.PHONY: dns
+dns: $(TERRAFORM) check-service check-aws-creds
+	source terraform/tf_env.sh ${SQUASH_SERVICE} $(NAMESPACE) $(EXTERNAL_IP); \
+	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}.tfstate terraform/dns
+
+remove-dns: $(TERRAFORM) check-service check-aws-creds
+	source terraform/tf_env.sh; \
+	$(TERRAFORM) destroy -state=terraform/${SQUASH_SERVICE}.tfstate
+
+check-service:
+	@if [ -z ${SQUASH_SERVICE} ]; \
+  then echo "Error: SQUASH_SERVICE is undefined."; \
+       exit 1; \
+  fi
+
+check-aws-creds:
+	@if [ -z ${AWS_ACCESS_KEY_ID} ]; \
+  then echo "Error: AWS_ACCESS_KEY_ID is undefined."; \
+       exit 1; \
+  fi
+	@if [ -z ${AWS_SECRET_ACCESS_KEY} ]; \ 
+  then echo "Error: AWS_SECRET_ACCESS_KEY is undefined."; \ 
+       exit 1; \
+  fi
+  
 check-namespace:
 	@if [ -z ${NAMESPACE} ]; \
 	then echo "Error: NAMESPACE is undefined."; \
 	     exit 1; \
 	fi
+
+.PHONY: clean
+clean:
+	rm -rf $(LSST_CERTS_DIR)
+	rm -rf $(TLS_DIR)
