@@ -89,7 +89,7 @@ clean:
 	rm -rf $(LSST_CERTS_DIR)
 	rm -rf $(TLS_DIR)
 	rm -rf squash-db
-	rm -rf suqash-api
+	rm -rf squash-api
 
 check-namespace:
 	@if [ -z ${NAMESPACE} ]; \
