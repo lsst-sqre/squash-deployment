@@ -81,6 +81,9 @@ export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
 SQUASH_SERVICE=<name of the squash service> make dns
 ```
 
+NOTE: The namespace `squash-prod` is reserved for production deployment and will
+be removed from the service name.
+
 Output example:
 
 ```
