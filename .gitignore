@@ -6,6 +6,7 @@ squash-db
 squash-api
 squash-bokeh
 squash-dash
+kubernetes/namespace.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,35 +5,76 @@ Manage the deployment of the squash microservices.
 ## SQuaSH microservices deployment
 
 [squash-deployment](https://github.com/lsst-sqre/squash-deployment) will clone the repositories for the individual squash microservices, set the appropriate 
-namespaces, create the secrets and deploy the microservices in the right order.
+namespace and context, create the secrets and deploy the microservices in the right order.
+
+### Deployment namespace
+
+A Kubernetes _namespace_ provide a scope for Pods, Services, and Deployments in the cluster.
+You can use any available namespace.
+
+Namespaces are also used to define a context in which the `kubectl` client works.
+
+Use the following to create a `squash-dev` namespace and switch to the right context:
+```
+NAMESPACE=squash-dev make context
+```
+
+Output example: 
+
+```
+$ NAMESPACE=squash-dev make context
+All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
+kubectl create -f kubernetes/namespace.yaml
+namespace "squash-dev" created
+kubectl config set-context squash-dev --namespace=squash-dev --cluster=gke_radiant-moon-173517_us-west1-a_k0 --user=gke_radiant-moon-173517_us-west1-a_k0
+Context "squash-dev" created.
+kubectl config use-context squash-dev
+Switched to context "squash-dev".
+```
+
+### Create the `tls-certs` secret
+
+TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on `*.lsst.codes` domain. 
+
+Download the `lsst-certs.git` repo from the [lsst-square Dropbox folder](https://www.dropbox.com/home/lsst-sqre), it has the SSL key and certificates. Use the following to create the `tls-certs` secret.
+ 
+```
+make tls-certs
+```
+
+Output example:
+
+```
+Generating DH parameters, 2048 bit long safe prime, generator 2
+This is going to take a long time
+.......+................................................................+...................+.........................................+...............................................................................................................................................................................................................................................
+Creating tls-certs secret...
+Initialized empty Git repository in /Users/afausti/Projects/squash-deployment/lsst-certs/.git/
+remote: Counting objects: 72, done.
+remote: Compressing objects: 100% (61/61), done.
+remote: Total 72 (delta 19), reused 27 (delta 7)
+Unpacking objects: 100% (72/72), done.
+From ../lsst-certs
+ * branch            master     -> FETCH_HEAD
+ * [new branch]      master     -> origin/master
+cp lsst-certs/lsst.codes/2017/lsst.codes.key tls
+cp lsst-certs/lsst.codes/2017/lsst.codes_chain.pem tls
+kubectl delete --ignore-not-found=true secrets tls-certs
+kubectl create secret generic tls-certs --from-file=tls
+secret "tls-certs" created
+```
+
+
 
 ### SQuaSH DB
 
 [squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of MariaDB on Kubernetes for SQuaSH
 
-
 ```
-  make squash-db
+make squash-db
 ```
 
 ![SQuaSH db microservice](figs/squash-db.png)
-
-
-NOTE: if using minikube make the deployment using:
-```
-  MINIKUBE=true make squash-db
-```
-
-### Create the `tls-certs` secret
-
-`tls-certs` is used by the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices which use `nginx` as reverse proxy. 
-
-Download the `lsst-certs.git` repo from the [lsst-square](https://www.dropbox.com/home/lsst-sqre) Dropbox folder, it has the SSL key and certificates to secure
- traffic on `*.lsst.codes` services. 
-
-```
-  make tls-certs
-```
 
 ### SQuaSH API
 
@@ -58,7 +99,6 @@ The [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) provides a Bokeh s
 
 ### SQuaSH Dash
 The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps and display statistics from the SQuaSH API. 
-
 
 ```
   make squash-dash
@@ -116,7 +156,7 @@ SQUASH_SERVICE=<name of the squash service> make remove-dns
 
 
 ## Environment variables
-The following environment variables are used to exchange information among the pods:
+The following environment variables are used by the deployment:
 
 - SQUASH_DB_HOST
 - SQUASH_DB_PASSWORD
