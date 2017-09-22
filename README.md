@@ -2,14 +2,12 @@
 Manage the deployment of the squash microservices.
 
 
-## SQuaSH microservices deployment
-
 [squash-deployment](https://github.com/lsst-sqre/squash-deployment) will clone the repositories for the individual squash microservices, set the appropriate 
-namespace and context, create the secrets and deploy the microservices in the right order.
+namespace and context, create secrets, deployments and the DNS records for the services.
 
 ### Deployment namespace
 
-A Kubernetes _namespace_ provide a scope for Pods, Services, and Deployments in the cluster.
+A Kubernetes _namespace_ provides a scope for Pods, Services, and Deployments in the cluster.
 You can use any available namespace.
 
 Namespaces are also used to define a context in which the `kubectl` client works.
@@ -23,7 +21,7 @@ Output example:
 
 ```
 $ NAMESPACE=squash-dev make context
-All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
+---
 kubectl create -f kubernetes/namespace.yaml
 namespace "squash-dev" created
 kubectl config set-context squash-dev --namespace=squash-dev --cluster=gke_radiant-moon-173517_us-west1-a_k0 --user=gke_radiant-moon-173517_us-west1-a_k0
@@ -32,9 +30,20 @@ kubectl config use-context squash-dev
 Switched to context "squash-dev".
 ```
 
+A namespace can be removed with:
+
+```
+SQUASH_SERVICE=<name of the squash service> make remove-namespace
+--
+All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
+namespace "squash-dev" deleted
+```
+
+NOTE: There's a reserved namespace, `squash-prod`, used by the production deployment only.
+
 ### Create the `tls-certs` secret
 
-TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on `*.lsst.codes` domain. 
+TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on the `*.lsst.codes` domain. 
 
 Download the `lsst-certs.git` repo from the [lsst-square Dropbox folder](https://www.dropbox.com/home/lsst-sqre), it has the SSL key and certificates. Use the following to create the `tls-certs` secret.
  
@@ -45,6 +54,8 @@ make tls-certs
 Output example:
 
 ```
+$ make tls-certs
+---
 Generating DH parameters, 2048 bit long safe prime, generator 2
 This is going to take a long time
 .......+................................................................+...................+.........................................+...............................................................................................................................................................................................................................................
@@ -64,15 +75,15 @@ kubectl create secret generic tls-certs --from-file=tls
 secret "tls-certs" created
 ```
 
-
-
 ### SQuaSH DB
 
 [squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of MariaDB on Kubernetes for SQuaSH
 
 ```
-make squash-db
+SQUASH_SERVICE=squash-db make clone deployment
 ```
+See instructions at [squash-db](https://github.com/lsst-sqre/squash-db) on how to load test data or restore a copy of
+the current production database.
 
 ![SQuaSH db microservice](figs/squash-db.png)
 
@@ -81,36 +92,34 @@ make squash-db
 The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db), the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
 
 ```
-  make squash-api 
+SQUASH_SERVICE=squash-api make clone deployment
 ```
 
 ![SQuaSH DB and the API microservices](figs/squash-db-api.png)
-
 
 ### SQuaSH Bokeh
 The [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) provides a Bokeh server and host the SQuaSH bokeh apps. Bokeh apps can be embedded in the [squash-dash](https://github.com/lsst-sqre/squash-dash) frontend or in the JupiterLab environment.
  
 ```
-  make squash-bokeh
+SQUASH_SERVICE=squash-bokeh make clone deployment
 ```
 
 ![SQuaSH DB, API and the Bokeh microservices](figs/squash-db-api-bokeh.png)
-
 
 ### SQuaSH Dash
 The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps and display statistics from the SQuaSH API. 
 
 ```
-  make squash-dash
+SQUASH_SERVICE=squash-dash make clone deployment
 ```
 
 ![SQuaSH DB, API, Bokeh and the Dashboard microservices](figs/squash-deployment.png)
 
-
-## Configure DNS for the services
+## Creating DNS records for the services
 
 We use AWS route53 to create DNS records for SQuaSH services. You have to set your 
-AWS credentials and execute the command below for each service:
+AWS credentials and execute the command below for the `squash-api`, `squash-bokeh` 
+and `squash-dash` services.
 
 ```
 export AWS_ACCESS_KEY_ID=<your AWS credentials>
@@ -121,13 +130,14 @@ export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
 SQUASH_SERVICE=<name of the squash service> make dns
 ```
 
-NOTE: The namespace `squash-prod` is reserved for production deployment and will
+NOTE: The `squash-prod` namespace is reserved for production deployment and will
 be removed from the service name.
 
 Output example:
 
 ```
 $ SQUASH_SERVICE=squash-bokeh make dns
+---
 source terraform/tf_env.sh squash-bokeh squash-dev 35.203.172.87; 
 	./terraform/bin/terraform apply -state=terraform/squash-bokeh.tfstate terraform/dns
 aws_route53_record.squash-www: Creating...
@@ -153,7 +163,6 @@ The DNS record can be removed with:
 ```
 SQUASH_SERVICE=<name of the squash service> make remove-dns
 ```
-
 
 ## Environment variables
 The following environment variables are used by the deployment:
