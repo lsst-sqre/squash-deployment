@@ -66,7 +66,7 @@ SQUASH_DB_PASSWD = squash-db/passwd.txt
 $(SQUASH_DB_PASSWD):
 	@echo "Enter a password for the SQuaSH DB:"
 	@read MYSQL_PASSWD; \
-	echo $$MYSQL_PASSWD > $(SQUASH_DB_PASSWD)
+	echo $$MYSQL_PASSWD | tr -d '\n' > $(SQUASH_DB_PASSWD)
 
 REPO_URL = https://github.com/lsst-sqre/${SQUASH_SERVICE}.git
 
