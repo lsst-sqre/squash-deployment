@@ -5,7 +5,7 @@ NAMESPACE_TEMPLATE = kubernetes/namespace-template.yaml
 NAMESPACE_CONFIG = kubernetes/namespace.yaml
 REPLACE = ./kubernetes/replace.sh
 
-DELETE_CONTEXT = $(shell read -p "All previous Pods, Services, and Deployments \
+REMOVE_CONTEXT = $(shell read -p "All previous Pods, Services, and Deployments \
 in the \"${NAMESPACE}\" namespace will be destroyed. Are you sure? [y/n]:" answer; echo $$answer)
 
 # Find cluster and user from the current context to set the new context
@@ -13,17 +13,18 @@ CURRENT_CONTEXT = $(shell kubectl config current-context)
 CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.user}")
 CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.cluster}")
 
-context: check-namespace
+namespace: check-namespace
 	@$(REPLACE) $(NAMESPACE_TEMPLATE) $(NAMESPACE_CONFIG)
-	@if [ "$(DELETE_CONTEXT)" = "y" ]; \
-	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
-	else echo "Exiting..."; \
-	     exit 1; \
-	fi
-	@sleep 10
 	kubectl create -f $(NAMESPACE_CONFIG)
 	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
 	kubectl config use-context ${NAMESPACE}
+
+remove-namespace: check-namespace
+	@if [ "$(REMOVE_CONTEXT)" = "y" ]; \
+	then kubectl delete namespace ${NAMESPACE}; \
+	else echo "Exiting..."; \
+	     exit 1; \
+	fi
 
 # Create Kubernetes tls-certs secret
 
@@ -64,15 +65,19 @@ SQUASH_DB_PASSWD = squash-db/passwd.txt
 
 $(SQUASH_DB_PASSWD):
 	@echo "Enter a password for the SQuaSH DB:"
-	@read MYSQL_PASSWD
-	@echo $MYSQL_PASSWD > $(SQUASH_DB_PASSWD)
+	@read MYSQL_PASSWD; \
+	echo $$MYSQL_PASSWD | tr -d '\n' > $(SQUASH_DB_PASSWD)
 
 REPO_URL = https://github.com/lsst-sqre/${SQUASH_SERVICE}.git
 
-clone: check_service
+clone: check-service
 	git clone $(REPO_URL)
 
-deployment:
+# Since squash-db is the first service deployed is OK to add
+# the SQUASH_DB_PASSWD as dependency here
+
+.PHONY: deployment
+deployment: $(SQUASH_DB_PASSWD)
 	TAG=latest $(MAKE) deployment -C ${SQUASH_SERVICE}
 
 # Create AWS route53 resources
@@ -84,11 +89,10 @@ $(TERRAFORM):
 EXTERNAL_IP = $(shell kubectl get service ${SQUASH_SERVICE} -o jsonpath --template='{.status.loadBalancer.ingress[0].ip}')
 
 # By construction the context name is the same as the namespace name, see above.
-NAMESPACE = $(CURRENT_CONTEXT)
 
 .PHONY: dns
 dns: $(TERRAFORM) check-service check-aws-creds
-	source terraform/tf_env.sh ${SQUASH_SERVICE} $(NAMESPACE) $(EXTERNAL_IP); \
+	source terraform/tf_env.sh ${SQUASH_SERVICE} $(CURRENT_CONTEXT) $(EXTERNAL_IP); \
 	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}.tfstate terraform/dns
 
 remove-dns: $(TERRAFORM) check-service check-aws-creds
@@ -97,20 +101,20 @@ remove-dns: $(TERRAFORM) check-service check-aws-creds
 
 check-service:
 	@if [ -z ${SQUASH_SERVICE} ]; \
-  then echo "Error: SQUASH_SERVICE is undefined."; \
+	then echo "Error: SQUASH_SERVICE is undefined."; \
        exit 1; \
-  fi
+    fi
 
 check-aws-creds:
 	@if [ -z ${AWS_ACCESS_KEY_ID} ]; \
-  then echo "Error: AWS_ACCESS_KEY_ID is undefined."; \
+	then echo "Error: AWS_ACCESS_KEY_ID is undefined."; \
        exit 1; \
-  fi
-	@if [ -z ${AWS_SECRET_ACCESS_KEY} ]; \ 
-  then echo "Error: AWS_SECRET_ACCESS_KEY is undefined."; \ 
+    fi
+	@if [ -z ${AWS_SECRET_ACCESS_KEY} ]; \
+    then echo "Error: AWS_SECRET_ACCESS_KEY is undefined."; \
        exit 1; \
-  fi
-  
+    fi
+
 check-namespace:
 	@if [ -z ${NAMESPACE} ]; \
 	then echo "Error: NAMESPACE is undefined."; \
@@ -121,3 +125,4 @@ check-namespace:
 clean:
 	rm -rf $(LSST_CERTS_DIR)
 	rm -rf $(TLS_DIR)
+	rm -rf $(SQUASH_DB_PASSWD)
