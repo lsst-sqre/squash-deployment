@@ -33,7 +33,7 @@ Switched to context "squash-dev".
 A namespace can be removed with:
 
 ```
-SQUASH_SERVICE=<name of the squash service> make remove-namespace
+$ NAMESPACE=squash-dev make remove-namespace
 --
 All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
 namespace "squash-dev" deleted
@@ -77,7 +77,7 @@ secret "tls-certs" created
 
 ### SQuaSH DB
 
-[squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of MariaDB on Kubernetes for SQuaSH
+[squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of `mariadb` on Kubernetes for SQuaSH
 
 ```
 SQUASH_SERVICE=squash-db make clone deployment
@@ -89,7 +89,7 @@ the current production database.
 
 ### SQuaSH API
 
-The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db), the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
+The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db) with the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
 
 ```
 SQUASH_SERVICE=squash-api make clone deployment
@@ -117,7 +117,7 @@ SQUASH_SERVICE=squash-dash make clone deployment
 
 ## Creating DNS records for the services
 
-We use AWS route53 to create DNS records for SQuaSH services. You have to set your 
+We use AWS route53 to create DNS records for the SQuaSH services. You have to set your 
 AWS credentials and execute the command below for the `squash-api`, `squash-bokeh` 
 and `squash-dash` services.
 
@@ -130,7 +130,9 @@ export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
 SQUASH_SERVICE=<name of the squash service> make dns
 ```
 
-NOTE: The `squash-prod` namespace is reserved for production deployment and will
+Service names follow the pattern `<name of the squash service>-<namespace>.lsst.codes`. 
+
+NOTE: The `squash-prod` _namespace_ is reserved for the production deployment and will
 be removed from the service name.
 
 Output example:
@@ -142,7 +144,7 @@ source terraform/tf_env.sh squash-bokeh squash-dev 35.203.172.87;
 	./terraform/bin/terraform apply -state=terraform/squash-bokeh.tfstate terraform/dns
 aws_route53_record.squash-www: Creating...
   fqdn:              "" => "<computed>"
-  name:              "" => "squash-bokeh.squash-dev.lsst.codes"
+  name:              "" => "squash-bokeh-squash-dev.lsst.codes"
   records.#:         "" => "1"
   records.547640452: "" => "35.203.172.87"
   ttl:               "" => "300"
@@ -152,7 +154,7 @@ aws_route53_record.squash-www: Still creating... (10s elapsed)
 aws_route53_record.squash-www: Still creating... (20s elapsed)
 aws_route53_record.squash-www: Still creating... (30s elapsed)
 aws_route53_record.squash-www: Still creating... (40s elapsed)
-aws_route53_record.squash-www: Creation complete (ID: Z3TH0HRSNU67AM_squash-bokeh.squash-dev.lsst.codes_A)
+aws_route53_record.squash-www: Creation complete (ID: Z3TH0HRSNU67AM_squash-bokeh-squash-dev.lsst.codes_A)
 
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
