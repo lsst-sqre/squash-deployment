@@ -21,7 +21,7 @@ namespace: check-namespace
 
 remove-namespace: check-namespace
 	@if [ "$(REMOVE_CONTEXT)" = "y" ]; \
-	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
+	then kubectl delete namespace ${NAMESPACE}; \
 	else echo "Exiting..."; \
 	     exit 1; \
 	fi
