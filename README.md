@@ -14,13 +14,13 @@ Namespaces are also used to define a context in which the `kubectl` client works
 
 Use the following to create a `squash-dev` namespace and switch to the right context:
 ```
-NAMESPACE=squash-dev make context
+NAMESPACE=squash-dev make namespace 
 ```
 
 Output example: 
 
 ```
-$ NAMESPACE=squash-dev make context
+$ NAMESPACE=squash-dev make namespace
 ---
 kubectl create -f kubernetes/namespace.yaml
 namespace "squash-dev" created

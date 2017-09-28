@@ -13,13 +13,13 @@ CURRENT_CONTEXT = $(shell kubectl config current-context)
 CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.user}")
 CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.cluster}")
 
-context: check-namespace
+namespace: check-namespace
 	@$(REPLACE) $(NAMESPACE_TEMPLATE) $(NAMESPACE_CONFIG)
 	kubectl create -f $(NAMESPACE_CONFIG)
 	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
 	kubectl config use-context ${NAMESPACE}
 
-remove-context: check-namespace
+remove-namespace: check-namespace
 	@if [ "$(REMOVE_CONTEXT)" = "y" ]; \
 	then kubectl delete --ignore-not-found -f $(NAMESPACE_CONFIG); \
 	else echo "Exiting..."; \
