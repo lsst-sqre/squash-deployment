@@ -13,10 +13,18 @@ CURRENT_CONTEXT = $(shell kubectl config current-context)
 CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.user}")
 CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"$(CURRENT_CONTEXT)\")].context.cluster}")
 
-namespace: check-namespace
+# Find the cluster and user from a previously created context (by construction the context name = namespace)
+EXISTING_CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"${NAMESPACE}\")].context.user}")
+EXISTING_CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"${NAMESPACE}\")].context.cluster}")
+
+create-namespace: check-namespace
 	@$(REPLACE) $(NAMESPACE_TEMPLATE) $(NAMESPACE_CONFIG)
 	kubectl create -f $(NAMESPACE_CONFIG)
 	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
+	kubectl config use-context ${NAMESPACE}
+
+switch-namespace: check-namespace
+	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(EXISTING_CONTEXT_CLUSTER) --user=$(EXISTING_CONTEXT_USER)
 	kubectl config use-context ${NAMESPACE}
 
 remove-namespace: check-namespace
@@ -56,7 +64,6 @@ tls-certs: $(TLS_DIR)/$(SSL_DH)
 
 	cp lsst-certs/lsst.codes/$(LSST_CERTS_YEAR)/$(SSL_KEY) $(TLS_DIR)
 	cp lsst-certs/lsst.codes/$(LSST_CERTS_YEAR)/$(SSL_CERT) $(TLS_DIR)
-
 	kubectl delete --ignore-not-found=true secrets tls-certs
 	kubectl create secret generic tls-certs --from-file=$(TLS_DIR)
 
@@ -90,14 +97,14 @@ EXTERNAL_IP = $(shell kubectl get service ${SQUASH_SERVICE} -o jsonpath --templa
 
 # By construction the context name is the same as the namespace name, see above.
 
-.PHONY: dns
-dns: $(TERRAFORM) check-service check-aws-creds
+.PHONY: dns check-namespace
+create-dns: $(TERRAFORM) check-service check-namespace check-aws-creds
 	source terraform/tf_env.sh ${SQUASH_SERVICE} $(CURRENT_CONTEXT) $(EXTERNAL_IP); \
-	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}.tfstate terraform/dns
+	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}-${NAMESPACE}.tfstate terraform/dns
 
-remove-dns: $(TERRAFORM) check-service check-aws-creds
+remove-dns: $(TERRAFORM) check-service check-namespace check-aws-creds
 	source terraform/tf_env.sh; \
-	$(TERRAFORM) destroy -state=terraform/${SQUASH_SERVICE}.tfstate
+	$(TERRAFORM) destroy -state=terraform/${SQUASH_SERVICE}-${NAMESPACE}.tfstate
 
 check-service:
 	@if [ -z ${SQUASH_SERVICE} ]; \

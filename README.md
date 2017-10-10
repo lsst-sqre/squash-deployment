@@ -14,13 +14,13 @@ Namespaces are also used to define a context in which the `kubectl` client works
 
 Use the following to create a `squash-dev` namespace and switch to the right context:
 ```
-NAMESPACE=squash-dev make namespace 
+NAMESPACE=squash-dev make create-namespace 
 ```
 
 Output example: 
 
 ```
-$ NAMESPACE=squash-dev make namespace
+$ NAMESPACE=squash-dev make create-namespace
 ---
 kubectl create -f kubernetes/namespace.yaml
 namespace "squash-dev" created
@@ -127,7 +127,7 @@ export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
 ```
 
 ```
-SQUASH_SERVICE=<name of the squash service> make dns
+SQUASH_SERVICE=<name of the squash service> make create-dns
 ```
 
 Service names follow the pattern `<name of the squash service>-<namespace>.lsst.codes`. 
@@ -138,7 +138,7 @@ be removed from the service name.
 Output example:
 
 ```
-$ SQUASH_SERVICE=squash-bokeh make dns
+$ SQUASH_SERVICE=squash-bokeh make create-dns
 ---
 source terraform/tf_env.sh squash-bokeh squash-dev 35.203.172.87; 
 	./terraform/bin/terraform apply -state=terraform/squash-bokeh.tfstate terraform/dns
