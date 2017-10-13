@@ -1,18 +1,13 @@
 # squash-deployment
-Manage the deployment of the squash microservices.
+Manage the deployment of the squash microservices to a Kubernetes cluster. Currently we are deploying squash to [GKE](https://cloud.google.com/container-engine/).
 
-
-[squash-deployment](https://github.com/lsst-sqre/squash-deployment) will clone the repositories for the individual squash microservices, set the appropriate 
-namespace and context, create secrets, deployments and the DNS records for the services.
+[squash-deployment](https://github.com/lsst-sqre/squash-deployment) will clone the repositories for each squash microservice, set the appropriate k8s namespace, create secrets, deployments and services.
 
 ### Deployment namespace
 
-A Kubernetes _namespace_ provides a scope for Pods, Services, and Deployments in the cluster.
-You can use any available namespace.
+A Kubernetes _namespace_ provides a scope for secrets, deployments and services in the cluster. Namespaces are also used to define a context in which the `kubectl` client works.
 
-Namespaces are also used to define a context in which the `kubectl` client works.
-
-Use the following to create a `squash-dev` namespace and switch to the right context:
+You can use any available namespace. For instance, to create a `squash-dev` namespace and switch to the right context use:
 ```
 NAMESPACE=squash-dev make create-namespace 
 ```
@@ -30,7 +25,12 @@ kubectl config use-context squash-dev
 Switched to context "squash-dev".
 ```
 
-A namespace can be removed with:
+You can switch to an existing namespace using:
+```
+NAMESPACE=demo make switch-namespace 
+```
+
+And a namespace can be removed with:
 
 ```
 $ NAMESPACE=squash-dev make remove-namespace
@@ -38,8 +38,7 @@ $ NAMESPACE=squash-dev make remove-namespace
 All previous Pods, Services, and Deployments in the "squash-dev" namespace will be destroyed. Are you sure? [y/n]:y
 namespace "squash-dev" deleted
 ```
-
-NOTE: There's a reserved namespace, `squash-prod`, used by the production deployment only.
+NOTE: There's a reserved namespace, `squash-prod`, used by production deployment only.
 
 ### Create the `tls-certs` secret
 
@@ -77,19 +76,19 @@ secret "tls-certs" created
 
 ### SQuaSH DB
 
-[squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of `mariadb` on Kubernetes for SQuaSH
+[squash-db](https://github.com/lsst-sqre/squash-db) provides a persistent installation of `mariadb` on Kubernetes 
 
 ```
 SQUASH_SERVICE=squash-db make clone deployment
 ```
-See instructions at [squash-db](https://github.com/lsst-sqre/squash-db) on how to load test data or restore a copy of
-the current production database.
+See instructions at [squash-db](https://github.com/lsst-sqre/squash-db) on how to restore a copy of
+the current production database and schedule periodic back ups.
 
 ![SQuaSH db microservice](figs/squash-db.png)
 
 ### SQuaSH API
 
-The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db) with the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
+The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db) to the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
 
 ```
 SQUASH_SERVICE=squash-api make clone deployment
@@ -98,7 +97,7 @@ SQUASH_SERVICE=squash-api make clone deployment
 ![SQuaSH DB and the API microservices](figs/squash-db-api.png)
 
 ### SQuaSH Bokeh
-The [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) provides a Bokeh server and host the SQuaSH bokeh apps. Bokeh apps can be embedded in the [squash-dash](https://github.com/lsst-sqre/squash-dash) frontend or in the JupiterLab environment.
+The [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) provides a Bokeh server to host the SQuaSH bokeh apps. Bokeh apps can be embedded in the [squash-dash](https://github.com/lsst-sqre/squash-dash) frontend or in the JupyterLab environment.
  
 ```
 SQUASH_SERVICE=squash-bokeh make clone deployment
@@ -107,7 +106,7 @@ SQUASH_SERVICE=squash-bokeh make clone deployment
 ![SQuaSH DB, API and the Bokeh microservices](figs/squash-db-api-bokeh.png)
 
 ### SQuaSH Dash
-The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps and display statistics from the SQuaSH API. 
+The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps.
 
 ```
 SQUASH_SERVICE=squash-dash make clone deployment
@@ -134,14 +133,13 @@ Service names follow the pattern `<name of the squash service>-<namespace>.lsst.
 
 NOTE: The `squash-prod` _namespace_ is reserved for the production deployment and will
 be removed from the service name.
-
 Output example:
 
 ```
 $ SQUASH_SERVICE=squash-bokeh make create-dns
 ---
 source terraform/tf_env.sh squash-bokeh squash-dev 35.203.172.87; 
-	./terraform/bin/terraform apply -state=terraform/squash-bokeh.tfstate terraform/dns
+	./terraform/bin/terraform apply -state=terraform/squash-bokeh-squash-dev.tfstate terraform/dns
 aws_route53_record.squash-www: Creating...
   fqdn:              "" => "<computed>"
   name:              "" => "squash-bokeh-squash-dev.lsst.codes"
@@ -160,7 +158,9 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
 ```
 
-The DNS record can be removed with:
+Note that the `terraform` state is saved for each service and namespace.
+
+A DNS record can be removed with:
 
 ```
 SQUASH_SERVICE=<name of the squash service> make remove-dns
@@ -178,4 +178,7 @@ The following environment variables are used by the deployment:
 - SQUASH_BOKEH_PORT
 - SQUASH_BOKEH_URL
 - SQUASH_DASH_HOST
+
+
+
 
