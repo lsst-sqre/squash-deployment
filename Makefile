@@ -17,7 +17,7 @@ CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts
 EXISTING_CONTEXT_USER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"${NAMESPACE}\")].context.user}")
 EXISTING_CONTEXT_CLUSTER = $(shell kubectl config view -o jsonpath --template="{.contexts[?(@.name == \"${NAMESPACE}\")].context.cluster}")
 
-create-namespace: check-namespace
+namespace: check-namespace
 	@$(REPLACE) $(NAMESPACE_TEMPLATE) $(NAMESPACE_CONFIG)
 	kubectl create -f $(NAMESPACE_CONFIG)
 	kubectl config set-context ${NAMESPACE} --namespace=${NAMESPACE} --cluster=$(CONTEXT_CLUSTER) --user=$(CONTEXT_USER)
@@ -67,25 +67,15 @@ tls-certs: $(TLS_DIR)/$(SSL_DH)
 	kubectl delete --ignore-not-found=true secrets tls-certs
 	kubectl create secret generic tls-certs --from-file=$(TLS_DIR)
 
-# Create Kubernetes deloyment
-SQUASH_DB_PASSWD = squash-db/passwd.txt
 
-$(SQUASH_DB_PASSWD):
-	@echo "Enter a password for the SQuaSH DB:"
-	@read MYSQL_PASSWD; \
-	echo $$MYSQL_PASSWD | tr -d '\n' > $(SQUASH_DB_PASSWD)
 
 REPO_URL = https://github.com/lsst-sqre/${SQUASH_SERVICE}.git
 
 clone: check-service
 	git clone $(REPO_URL)
 
-# Since squash-db is the first service deployed is OK to add
-# the SQUASH_DB_PASSWD as dependency here
-
-.PHONY: deployment
-deployment: $(SQUASH_DB_PASSWD)
-	TAG=latest $(MAKE) deployment -C ${SQUASH_SERVICE}
+deployment:
+	TAG=latest $(MAKE) service deployment -C ${SQUASH_SERVICE}
 
 # Create AWS route53 resources
 TERRAFORM = ./terraform/bin/terraform
@@ -97,12 +87,11 @@ EXTERNAL_IP = $(shell kubectl get service ${SQUASH_SERVICE} -o jsonpath --templa
 
 # By construction the context name is the same as the namespace name, see above.
 
-.PHONY: dns check-namespace
-create-dns: $(TERRAFORM) check-service check-namespace check-aws-creds
+name: $(TERRAFORM) check-service check-namespace check-aws-creds
 	source terraform/tf_env.sh ${SQUASH_SERVICE} $(CURRENT_CONTEXT) $(EXTERNAL_IP); \
 	$(TERRAFORM) apply -state=terraform/${SQUASH_SERVICE}-${NAMESPACE}.tfstate terraform/dns
 
-remove-dns: $(TERRAFORM) check-service check-namespace check-aws-creds
+remove-name: $(TERRAFORM) check-service check-namespace check-aws-creds
 	source terraform/tf_env.sh; \
 	$(TERRAFORM) destroy -state=terraform/${SQUASH_SERVICE}-${NAMESPACE}.tfstate
 
@@ -128,7 +117,6 @@ check-namespace:
 	     exit 1; \
 	fi
 
-.PHONY: clean
 clean:
 	rm -rf $(LSST_CERTS_DIR)
 	rm -rf $(TLS_DIR)
