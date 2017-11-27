@@ -68,6 +68,7 @@ You can use any available namespace.
 Namespaces are also used to define the context in which the `kubectl` client works.
 
 Use the following to create a `demo` namespace and switch to the right context:
+
 ```
 NAMESPACE=demo make namespace 
 ```
@@ -87,7 +88,12 @@ kubectl config use-context demo
 Switched to context "demo".
 ```
 
-A namespace can be removed with:
+You can switch to an existing namespace using:
+```
+NAMESPACE=demo make switch-namespace 
+```
+
+And a namespace can be removed with:
 
 ```
 $ NAMESPACE=demo make remove-namespace
@@ -156,7 +162,7 @@ the current production database.
 
 ### SQuaSH API
 
-The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db) with the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
+The [squash-api](https://github.com/lsst-sqre/squash-api) connects the [squash-db](https://github.com/lsst-sqre/squash-db) to the [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and the [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices.
 
 ```
 SQUASH_SERVICE=squash-api make clone deployment
@@ -174,7 +180,7 @@ SQUASH_SERVICE=squash-bokeh make clone deployment
 ![SQuaSH DB, API and the Bokeh microservices](figs/squash-db-api-bokeh.png)
 
 ### SQuaSH Dash
-The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps and display statistics from the SQuaSH API. 
+The [squash-dash](https://github.com/lsst-sqre/squash-dash) is a frontend interface to embed the SQuaSH bokeh apps.
 
 ```
 SQUASH_SERVICE=squash-dash make clone deployment
@@ -225,6 +231,8 @@ aws_route53_record.squash-www: Creation complete (ID: Z3TH0HRSNU67AM_squash-boke
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
 ```
+
+Note that the `terraform` state is saved for each service and namespace.
 
 A DNS record can be removed with:
 
