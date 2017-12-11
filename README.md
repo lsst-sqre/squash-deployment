@@ -108,7 +108,7 @@ NOTE: There's a reserved namespace, `squash-prod`, used for the production deplo
 
 TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on the `*.lsst.codes` domain. 
 
-The SSL key and certificates for the `*.lsst.codes` domain name can be downloaded from this bare repo at [lsst-certs](https://www.dropbox.com/home/lsst-sqre/lsst-certs.git):
+The SSL key and certificates for the `*.lsst.codes` domain name can be downloaded from this bare repo at [lsst-certs](https://www.dropbox.com/home/lsst-sqre/git) 
 
 NOTE: If you are not SQuaRE you'll need help from a member of the team to access this folder. You'll have to sign in to Dropbox to download the `lsst-certs.git`, make sure it is in the current directory and is unziped. 
 
