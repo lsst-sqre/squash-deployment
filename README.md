@@ -155,8 +155,8 @@ cd ..
 
 ```
 
-See instructions at [squash-db](https://github.com/lsst-sqre/squash-db) on how to load test data or restore a copy of
-the current production database.
+See instructions at [squash-db](https://github.com/lsst-sqre/squash-db) on how to restore a copy of
+the current production database or how to load test data from the [squash-api](https://github.com/lsst-sqre/squash-api).
 
 ![SQuaSH db microservice](figs/squash-db.png)
 
