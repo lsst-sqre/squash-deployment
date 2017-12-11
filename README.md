@@ -26,7 +26,7 @@ export AWS_ACCESS_KEY_ID=<your AWS credentials>
 export AWS_SECRET_ACCESS_KEY=<your AWS credentials>
  
 aws s3 ls s3://jenkins-prod-qadb.lsst.codes-backups/squash-prod/
-aws s3 cp s3://jenkins-prod-qadb.lsst.codes-backups/squash-prod/<YYYYMMDD-HHMM>/squash-db-mariadb-qadb-<YYYYMMDD-HHMM>.gz .
+aws s3 cp s3://jenkins-prod-qadb.lsst.codes-backups/squash-prod/<YYYYMMDD-HHMM>/<squash-db pod>-mariadb-qadb-<YYYYMMDD-HHMM>.gz .
  
 kubectl cp squash-db-mariadb-qadb-<YYYYMMDD-HHMM>.gz <squash-db pod>:/ 
 kubectl exec -it <squash-db pod> /bin/bash
@@ -108,10 +108,10 @@ NOTE: There's a reserved namespace, `squash-prod`, used for the production deplo
 
 TLS termination is implemented in the [squash-api](https://github.com/lsst-sqre/squash-api), [squash-bokeh](https://github.com/lsst-sqre/squash-bokeh) and [squash-dash](https://github.com/lsst-sqre/squash-dash) microservices to secure traffic on the `*.lsst.codes` domain. 
 
-Download the `lsst-certs.git` repo from the [lsst-square Dropbox folder](https://www.dropbox.com/home/lsst-sqre), it has the SSL key and certificates for the `*.lsst.codes` domain name. 
+The SSL key and certificates for the `*.lsst.codes` domain name can be downloaded from this bare repo at [lsst-certs](https://www.dropbox.com/home/lsst-sqre/lsst-certs.git):
 
-NOTE: if you are not SQuaRE you'll need help from a member of the team to access this folder.
- 
+NOTE: If you are not SQuaRE you'll need help from a member of the team to access this folder. You'll have to sign in to Dropbox to download the `lsst-certs.git`, make sure it is in the current directory and is unziped. 
+
 Then use the following command to create the `tls-certs` secret.
  
 ```
