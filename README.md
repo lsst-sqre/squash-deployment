@@ -50,7 +50,7 @@ Kubernetes namespace, create secrets and custom configurations and finally to cr
 
 If you are not familiar with microservices or Kubernetes concepts, we recommend this [tutorial](https://classroom.udacity.com/courses/ud615) from Kelsey Hightower. 
 
-NOTE: some of the steps below will require your AWS credentials and access to the TLS certificates provided by SQuaRE. We use AWS Route 53 for the DNS and backu up the SQuaSG DB to AWS S3.
+NOTE: some of the steps below will require your AWS credentials and access to the TLS certificates provided by SQuaRE. We use AWS Route 53 for the DNS and make backups of the SQuaSH DB to AWS S3.
 
 ### Requirements
 
