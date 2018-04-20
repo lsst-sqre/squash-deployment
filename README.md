@@ -1,6 +1,6 @@
 # tl;dr
 
-Short instructions in case you are familiar with the [SQuaSH](https://squash.lsst.codes/) deploymen:
+Short instructions in case you are familiar with the [SQuaSH](https://squash.lsst.codes/) deployment:
 ```
 # Make sure kubectl is configured to access your GKE cluster
  
