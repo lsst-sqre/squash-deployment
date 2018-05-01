@@ -30,6 +30,9 @@ export INSTANCE_CONNECTION_NAME=<name of the cloudsql instance>
 export AWS_ACCESS_KEY_ID=<the aws access key id>
 export AWS_SECRET_ACCESS_KEY=<the aws secret access key>
 make aws-secret
+
+# Create the S3 bucket for this deployment
+make s3-bucket  
   
 # Set the application default user
 export SQUASH_DEFAULT_USER=<the squash api admin user>
