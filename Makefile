@@ -38,7 +38,7 @@ remove-namespace: check-namespace
 
 # LSST_CERTS_REPO is downloaded from the `lsst-square` Dropbox folder
 LSST_CERTS_REPO = lsst-certs.git
-LSST_CERTS_YEAR = 2017
+LSST_CERTS_YEAR = 2018
 
 # Keys and certificates used in nginx config
 SSL_KEY = lsst.codes.key
