@@ -10,7 +10,8 @@ make namespace
  
 # Create the TLS certificate secrets used by the SQuaSH services
 
-# Download the `lsst-certs.git` repo
+# Download the `lsst-certs.git` repo containing the most recent SSL certificates (or ask SQuaRE if you don't know about it)
+# Make sure the folder is unzipped
 make tls-certs
  
 # Deploy the SQuaSH REST API
@@ -213,3 +214,14 @@ NAMESPACE=<namespace> SQUASH_SERVICE=<name of the squash service> make remove-na
 ```
 
 That's it, you should be able to access SQuaSH from `https://squash-<namespace>.lsst.codes`.
+
+
+# Updating SSL certificates
+
+- Go to squash-deployment folder used to deploy a particular SQuaSH instance
+- Download the new SSL certificates, currently the `lsst-certs.git` repo from the `lsst-square` Dropbox folder
+- Update `LSST_CERTS_YEAR` variable to the current year in the Makefile
+- Remove the previous `tls` folder
+- Run make `tls-certs`
+
+
